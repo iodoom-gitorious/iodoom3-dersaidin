@@ -2105,11 +2105,15 @@ Sets gameFolder, adds the directory to the head of the search paths, then loads 
 ================
 */
 void idFileSystemLocal::AddGameDirectory( const char *path, const char *dir ) {
-	int				i;
 	searchpath_t *	search;
 	pack_t *		pak;
+	idStr			curpath;
 	idStr			pakfile;
 	idStrList		pakfiles;
+	int				pakfilei;
+	idStr			pakdir;
+	idStrList		pakdirs;
+	int				pakdiri;
 
 	// check if the search path already exists
 	for ( search = searchPaths; search; search = search->next ) {
@@ -2137,28 +2141,72 @@ void idFileSystemLocal::AddGameDirectory( const char *path, const char *dir ) {
 	searchPaths = search;
 
 	// find all pak files in this directory
-	pakfile = BuildOSPath( path, dir, "" );
-	pakfile[ pakfile.Length() - 1 ] = 0;	// strip the trailing slash
+	curpath = BuildOSPath( path, dir, "" );
+	curpath[ curpath.Length() - 1 ] = 0;	// strip the trailing slash
 
-	ListOSFiles( pakfile, ".pk4", pakfiles );
+	ListOSFiles( curpath, ".pk4", pakfiles );
+	ListOSFiles( curpath, "/", pakdirs );
 
 	// sort them so that later alphabetic matches override
 	// earlier ones. This makes pak1.pk4 override pak0.pk4
 	pakfiles.Sort();
+	pakdirs.Sort();
 
-	for ( i = 0; i < pakfiles.Num(); i++ ) {
-		pakfile = BuildOSPath( path, dir, pakfiles[i] );
-		pak = LoadZipFile( pakfile );
-		if ( !pak ) {
-			continue;
+	pakfilei = 0;
+	pakdiri = 0;
+	for ( ; (pakfilei + pakdiri) < (pakfiles.Num() + pakdirs.Num()); ) {
+		bool nextisfile;
+		if ( pakfilei >= pakfiles.Num() ) {
+			// We've used up all the pakfiles
+			nextisfile = false;
+		} else if ( pakdiri >= pakdirs.Num() ) {
+			// We've used up all the pakdirs
+			nextisfile = true;
+		} else {
+			// Could be either, compare to see which somes first
+			nextisfile = (pakfiles[pakfilei].Icmp(pakdirs[pakdiri]) < 0);
 		}
-		// insert the pak after the directory it comes from
-		search = new searchpath_t;
-		search->dir = NULL;
-		search->pack = pak;
-		search->next = searchPaths->next;
-		searchPaths->next = search;
-		common->Printf( "Loaded pk4 %s with checksum 0x%x\n", pakfile.c_str(), pak->checksum );
+
+		if ( nextisfile ) {
+			// The next .pk4 file is before the next .pk4dir
+			pakfile = BuildOSPath( path, dir, pakfiles[pakfilei] );
+			pak = LoadZipFile( pakfile );
+			if ( !pak ) {
+				continue;
+			}
+			// insert the pak after the directory it comes from
+			search = new searchpath_t;
+			search->dir = NULL;
+			search->pack = pak;
+			search->next = searchPaths->next;
+			searchPaths->next = search;
+			common->Printf( "Loaded pk4 %s with checksum 0x%x\n", pakfile.c_str(), pak->checksum );
+
+			pakfilei++;
+		} else {
+			// The next .pk4dir file is before the next .pk4
+			// First check that this directory ends in ".pk4dir"
+			idStr tmpext;
+			pakdirs[pakdiri].ExtractFileExtension( tmpext );
+			if ( tmpext.Icmp( "pk4dir" ) != 0 ) {
+				// This directory is not a pk4dir
+				pakdiri++;
+				continue;
+			}
+
+			pakdir = BuildOSPath( path, dir, pakdirs[pakdiri] );
+			// insert the pakdir after the directory it comes from
+			search = new searchpath_t;
+			search->dir = new directory_t;
+			search->pack = NULL;
+			search->dir->path = curpath;
+			search->dir->gamedir = pakdirs[pakdiri];
+			search->next = searchPaths->next;
+			searchPaths->next = search;
+			common->Printf( "Loaded pk4dir %s\n", pakdir.c_str() );
+
+			pakdiri++;
+		}
 	}
 }
 

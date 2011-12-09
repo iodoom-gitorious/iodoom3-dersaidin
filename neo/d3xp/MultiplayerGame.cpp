@@ -2278,14 +2278,26 @@ const char* idMultiplayerGame::HandleGuiCommands( const char *_menuCommand ) {
 			} else {
 				voteValue =	mainGui->State().GetString(	"str_voteValue"	);
 				if ( voteIndex == VOTE_KICK	) {
-					vote_clientNum = kickVoteMap[ atoi(	voteValue )	];
+					int vote_val = atoi( voteValue );
+					if ( vote_val < 0 || vote_val >= MAX_CLIENTS ) {
+						common->Printf( "idMultiplayerGame::HandleGuiCommands: '%d' is an invalid player for vote kick\n", vote_val );
+						DisableMenu();
+						return NULL;
+					}
+					vote_clientNum = kickVoteMap[ vote_val ];
 					ClientCallVote(	voteIndex, va( "%d", vote_clientNum	) );
 #ifdef CTF
 				} else if ( voteIndex == VOTE_GAMETYPE ) {
 					// send the actual gametype index, not an index in the choice list
 					int i;
 					for ( i = 0; si_gameTypeArgs[i]; i++ ) {
-						if ( !idStr::Icmp( gameTypeVoteMap[ atoi( voteValue ) ], si_gameTypeArgs[i] ) ) {
+						int vote_val = atoi( voteValue );
+						if ( vote_val < 0 || vote_val >= GAME_COUNT ) {
+							common->Printf( "idMultiplayerGame::HandleGuiCommands: '%d' is an invalid value for vote gametype\n", vote_val );
+							DisableMenu();
+							return NULL;
+						}
+						if ( !idStr::Icmp( gameTypeVoteMap[ vote_val ], si_gameTypeArgs[i] ) ) {
 							ClientCallVote( voteIndex, va( "%d", i ) );
 							break;
 						}

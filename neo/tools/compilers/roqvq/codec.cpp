@@ -250,12 +250,13 @@ void codec::Segment( int *alist, float *flist, int numElements, float rmse)
 				numc = 0;
 				for(yy=y;yy<(y+2);yy++) {
 					temp = (yy*dimension2)+x*(dimension2/4);
-					find[numc++] = (byte)(codebook4[onf][temp+0] + 0.50f);
-					find[numc++] = (byte)(codebook4[onf][temp+1] + 0.50f);
-					find[numc++] = (byte)(codebook4[onf][temp+2] + 0.50f);
-					find[numc++] = (byte)(codebook4[onf][temp+3] + 0.50f);
-					find[numc++] = (byte)(codebook4[onf][temp+4] + 0.50f);
-					find[numc++] = (byte)(codebook4[onf][temp+5] + 0.50f);
+					find[numc+0] = (byte)(codebook4[onf][temp+0] + 0.50f);
+					find[numc+1] = (byte)(codebook4[onf][temp+1] + 0.50f);
+					find[numc+2] = (byte)(codebook4[onf][temp+2] + 0.50f);
+					find[numc+3] = (byte)(codebook4[onf][temp+3] + 0.50f);
+					find[numc+4] = (byte)(codebook4[onf][temp+4] + 0.50f);
+					find[numc+5] = (byte)(codebook4[onf][temp+5] + 0.50f);
+					numc += 6;
 				}
 				lineout[index++] = BestCodeword( find, dimension2, codebook2 );
 			}

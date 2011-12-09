@@ -1116,7 +1116,7 @@ idBrushBSP::MakeNodePortal
 void idBrushBSP::MakeNodePortal( idBrushBSPNode *node ) {
 	idBrushBSPPortal *newPortal, *p;
 	idWinding *w;
-	int side;
+	int side = 0;
 
 	w = BaseWindingForNode( node );
 
